@@ -52,6 +52,7 @@ class Persistencia_article_sqlite(IPersistencia_article):
             self._conn.commit()
         except sqlite3.IntegrityError:
             logging.info("[Persistencia] Intent de tornar a escriure un article existent.")
+            
         return self.llegeix(article.nom)
         
     def llegeix(self, nom: str) -> Article:
