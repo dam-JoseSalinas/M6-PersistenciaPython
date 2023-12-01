@@ -54,7 +54,7 @@ class Categoria():
 
     def toJSON(self):
         registres_json = list(map(lambda a: json.loads(a.toJSON()), self._articles))
-        return json.dumps({"nom": self._nom, "articles": registres_json})
+        return json.dumps({"id": self._id, "nom": self._nom, "articles": registres_json})
     
     def __repr__(self):
         return self.toJSON()

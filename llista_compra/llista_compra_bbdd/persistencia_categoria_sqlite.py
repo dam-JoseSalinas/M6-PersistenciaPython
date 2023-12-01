@@ -104,7 +104,7 @@ class Persistencia_categoria_sqlite(IPersistencia_categoria):
         cursor.execute(query, parametres)
         articles = cursor.fetchall()
         for article in articles:
-            resultat.add_article(Article(article[1], Persistencia_article_mysql(self._credencials), article[0]))
+            resultat.add_article(Article(article[1], Persistencia_article_sqlite(self._credencials), article[0]))
         return resultat
 
 if __name__ == "__main__":

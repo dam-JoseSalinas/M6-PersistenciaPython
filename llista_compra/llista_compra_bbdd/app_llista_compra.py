@@ -13,6 +13,7 @@ from persistencia_article_sqlite import Persistencia_article_sqlite
 from persistencia_categoria_mysql import Persistencia_categoria_mysql
 from persistencia_categoria_sqlite import Persistencia_categoria_sqlite
 from article import Article
+from categoria import Categoria
 
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 RUTA_FITXER_CONFIGURACIO = os.path.join(THIS_PATH, 'configuracio_sqlite.yml') 
@@ -60,7 +61,7 @@ def landing_text():
     print("Benvingut a la app de la llista de la compra.")
     time.sleep(1)
     msg = "Dessitjo que et sigui d'utilitat!"
-    mostra_lent(msg, 0.025)
+    mostra_lent(msg, 0.01)
     input("Prem la tecla 'Enter' per a continuar")
     
 
@@ -68,21 +69,41 @@ def landing_text():
 def mostra_llista(llista):
     os.system('clear')
     mostra_lent(json.dumps(json.loads(llista.toJSON()), indent=4), v=0.01)
+    input("prem enter per continuar")
+
 
 def afegeix_article(llista):
     os.system('clear')
-    p = llista._persistencia_article
+    pa = llista._persistencia_article
     nom = input("nom de l'article: ")
-    a = Article(nom=nom, persistencia=p)
+    a = Article(nom=nom, persistencia=pa)
     article_afegit = a.persistencia.desa(a)
-    print("article afegit:\n" + article_afegit.__repr__())
-    input("prem enter")
-    
+    mostra_lent("Article afegit:", v=0.01)
+    mostra_lent(article_afegit.toJSON(), v=0.01)
+    input("prem enter per continuar")
+
 
 def afegeix_categoria(llista):
     os.system('clear')
+    pc = llista._persistencia_categoria
+    pa = llista._persistencia_article
+    nom = input("nom de la categoria: ")
+    c = Categoria(nom=nom, persistencia=pc)
+    opcio = None
+    while opcio != "n":
+        opcio = input("Crear un nou article dins la categoria? [s/n]: ")
+        if opcio == "s":
+            nom_a = input("nom de l'article: ")
+            c.add_article(Article(nom=nom_a, persistencia=pa))
+    categoria_afegida = c.persistencia.desa(c)
+    mostra_lent("Categoria afegida:", v=0.01)
+    mostra_lent(categoria_afegida.toJSON(), v=0.01)
+    input("prem enter per continuar")
+
+
 def afegeix_registre(llista):
     os.system('clear')
+    
 def rollback(llista):
     os.system('clear')
 
@@ -92,10 +113,10 @@ def mostra_menu():
     os.system('clear')
     print("0.- Surt de l'aplicació.")
     print("1.- Mostra la llista.")
-    print("*"*10 + "new features")
-    print("2.- Afegir article")
-    print("3.- Afegir categoria")
-    print("4.- Afegir registre")
+    print("="*5 + " NEW FEATURES")
+    print("2.- Afegir article.")
+    print("3.- Afegir categoria.")
+    print("4.- Afegir registre.")
     print("5.- Ajusta el condensador de fluxe per retrocedir en el temps (ROLLBACK).")
 
 
@@ -113,6 +134,7 @@ def procesa_opcio(context):
 def bucle_principal(context):
     opcio = None
     while opcio != '0':
+        context["llista"].llegeix_de_disc() #Es necesari per actualitzar les dades quan l'app esta en execucio
         mostra_menu()
         opcio = input("Selecciona una opció: ")
         context["opcio"] = opcio
@@ -136,7 +158,6 @@ def main():
         persistencia_registre = persistencies['registre'],
         persistencia_categoria = persistencies['categoria'],
     )
-    llista.llegeix_de_disc()
     context["llista"] = llista
     bucle_principal(context)
 
