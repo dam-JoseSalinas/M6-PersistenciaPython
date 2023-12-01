@@ -1,0 +1,26 @@
+{
+    "registres": [], 
+    "categories": 
+    [
+        {
+            "nom": "Frescos", 
+            "articles": []
+        }, 
+        {
+            "nom": "Begudes", 
+            "articles": []
+        }, 
+        {
+            "nom": "L\u00e0ctics", 
+            "articles": []
+        }, 
+        {
+            "nom": "Neteja", 
+            "articles": []
+        }, 
+        {
+            "nom": "Fruites i verdures", 
+            "articles": []
+        }
+    ]
+}

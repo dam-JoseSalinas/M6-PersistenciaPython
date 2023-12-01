@@ -14,19 +14,22 @@ import sqlite3
 import logging
 
 class Persistencia_categoria_sqlite(IPersistencia_categoria):
-    def __init__(self, sqlite_path):
-        self.sqlite_path = sqlite_path
-        self._conn = sqlite3.connect(sqlite_path)
+    def __init__(self, credencials):
+        self._credencials = credencials
+        self.connecta_db()
         if not self.check_table():
             self.create_table()
 
      
+    def connecta_db(self):
+        self._conn = sqlite3.connect(self._credencials["path"])
+
     def check_table(self):
         try:
-            cursor = self._conn.cursor() #bufered
-            cursor.execute("SELECT * FROM categories join articles_categoria on articles_categoria.categoria = categories.id;")
-            #cursor = reset = None
-        except sqlite3.OperationalError:
+            cursor = self._conn.cursor()
+            cursor.execute("SELECT * FROM categories join articles_categoria on articles_categoria.categoria = categories.rowid;")
+            cursor.close()
+        except sqlite3.Error:
             return False
         return True
 
@@ -36,17 +39,13 @@ class Persistencia_categoria_sqlite(IPersistencia_categoria):
         cursor.execute("Drop table if exists categories;")
         cursor.execute("""
                     Create table if not exists categories(
-                      id integer not null primary key autoincrement,
                       nom varchar(255) unique
                     )
                       """)
         cursor.execute("""
                     Create table if not exists articles_categoria(
-                      id integer not null primary key autoincrement,
-                      categoria integer not null,
-                      article integer not null,
-                      foreign key(categoria) references categories(id),
-                      foreign key(article) references articles(id)
+                      categoria int not null references categories(rowid),
+                      article int not null references articles(rowid)
                     )
                       """)
         self._conn.commit()
@@ -54,26 +53,18 @@ class Persistencia_categoria_sqlite(IPersistencia_categoria):
     
     def totes(self) -> List[Categoria]:
         cursor = self._conn.cursor()
-        query = "select id, nom from categories;"
-        cursor.execute(query) #bufered
+        query = "select rowid, nom from categories;"
+        cursor.execute(query)
         registres = cursor.fetchall()
-        #reset
         resultat = []
         for registre in registres:
-            categoria = Categoria(persistencia=self, id=registre[0], nom=registre[1])
-            query = """select a.id, a.nom 
-                       from articles_categoria ac
-                       join articles a
-                       on ac.article = a.id 
-                       where ac.categoria = ?;"""
+            categoria = Categoria(registre[1], self, registre[0])
+            query = "select articles.rowid, articles.nom from articles_categoria join articles on articles_categoria.article = articles.rowid where articles_categoria.categoria = ?;"
             parametres = (categoria.id,)
-            cursor.execute(query, parametres) ####################
+            cursor.execute(query, parametres)
             articles = cursor.fetchall()
             for article in articles:
-                categoria.add_article(article=Article(
-                                            nom = article[1], #nom = article[1]
-                                            persistencia = Persistencia_article_sqlite(self.sqlite_path),
-                                            id = article[0])) 
+                categoria.add_article(Article(article[1], Persistencia_article_sqlite(self._credencials), article[0]))
             resultat.append(categoria)
         return resultat
     
@@ -83,62 +74,50 @@ class Persistencia_categoria_sqlite(IPersistencia_categoria):
         parameters = (categoria.nom, )
         try:
             cursor.execute(query,parameters)
-            self._conn.commit() ###################
             nova_id = cursor.lastrowid
-            logging.info(f"[Persistencia] Nova categoria {categoria.nom} amb id = {nova_id}.")
+            self._conn.commit()
+            logging.info(f"[Persistencia] Nova categoria amb id = {nova_id}.")
             for article in categoria.articles:
                 if article.id is None:
                     article = article.persistencia.desa(article)
-                query = """insert into articles_categoria(
-                            categoria, article) values(?,?);"""
+                query = "insert into articles_categoria (categoria, article) values(?,?);"
                 parametres = (nova_id, article.id)
-                cursor.execute(query, parametres) #######
+                cursor.execute(query, parametres)
                 self._conn.commit()
-            self._conn.commit() 
-        except sqlite3.IntegrityError:
+        except sqlite3.Error:
             logging.info("[Persistencia] Integrity error escrivint categoria.")
         return self.llegeix(categoria.nom)
 
     def llegeix(self, nom: str) -> Categoria:
-        cursor = self._conn.cursor() #bufered
-        query = "select id, nom from categories where categories.nom = ?;" ##
+        cursor = self._conn.cursor()
+        query = "select rowid, nom from categories where categories.nom = ?;"
         parametres = (nom,)
         cursor.execute(query, parametres)
         registre = cursor.fetchone()
-        #reset
         if registre is None:
             logging.info(f"[Persistencia] Categoria inexistent {nom}.")
             return None
         resultat = Categoria(nom, self, cursor.lastrowid)
         logging.info(f"[Persistencia] Trobada categoria {nom}.")
-        query = """select articles.id, articles.nom 
-                from articles_categoria 
-                join articles 
-                on articles_categoria.article = articles.id 
-                where articles_categoria.categoria = ?;""" 
+        query = "select articles.rowid, articles.nom from articles_categoria join articles on articles_categoria.article = articles.rowid where articles_categoria.categoria = ?;"
         parametres = (resultat.id,)
-        cursor.execute(query, parametres) ####
+        cursor.execute(query, parametres)
         articles = cursor.fetchall()
         for article in articles:
-            resultat.add_article(article=Article(
-                                    nom = article[1], 
-                                    persistencia = Persistencia_article_sqlite(self.sqlite_path),
-                                    id = article[0]))
+            resultat.add_article(Article(article[1], Persistencia_article_mysql(self._credencials), article[0]))
         return resultat
 
 if __name__ == "__main__":
     logging.basicConfig(filename='llista_compra.log', encoding='utf-8', level=logging.DEBUG)
-    sqlite_file = "bd1.db"
-    pc = Persistencia_categoria_sqlite(sqlite_path=sqlite_file)
-    
+    credencials = {"path": "llista_compra.sqlite3"}
+    pc = Persistencia_categoria_sqlite(credencials)
     c = Categoria("CatProva", pc)
-    
-    pa = Persistencia_article_sqlite(sqlite_path=sqlite_file)
+    pa = Persistencia_article_sqlite(credencials)
     c.add_article(Article("Article prova 01", pa))
     c.add_article(Article("Article prova 02", pa))
     c.persistencia.desa(c)
     c = Categoria("CatProva_02", pc)
-    pa = Persistencia_article_sqlite(sqlite_path=sqlite_file)
+    pa = Persistencia_article_sqlite(credencials)
     c.add_article(Article("Article prova 03", pa))
     c.add_article(Article("Article prova 04", pa))
     c.persistencia.desa(c)

@@ -44,7 +44,7 @@ class Persistencia_article_mysql(IPersistencia_article):
         self._conn.commit()
 
     def tots(self):
-        pass
+        raise (NotImplementedError("persistencia_article_mysql.tots()"))
     
     def desa(self, article: Article) -> Article:
         cursor = self._conn.cursor()
