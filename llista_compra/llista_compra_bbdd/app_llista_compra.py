@@ -14,6 +14,7 @@ from persistencia_categoria_mysql import Persistencia_categoria_mysql
 from persistencia_categoria_sqlite import Persistencia_categoria_sqlite
 from article import Article
 from categoria import Categoria
+from registre import Registre
 
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 RUTA_FITXER_CONFIGURACIO = os.path.join(THIS_PATH, 'configuracio_sqlite.yml') 
@@ -103,9 +104,27 @@ def afegeix_categoria(llista):
 
 def afegeix_registre(llista):
     os.system('clear')
+    pr = llista._persistencia_registre
+    pa = llista._persistencia_article
+    nom_a = input("Articulo a comprar: ")
+
+    a = Article(nom=nom_a, persistencia=pa)
+    a = a.persistencia.desa(a)
+    q = int(input("Quantitat a comprar: "))
+    r = Registre(article=a, quantitat=q)
+    registre_afegit = pr.desa(r)
+    mostra_lent("Registre afegit:", v=0.01)
+    mostra_lent(registre_afegit.toJSON(), v=0.01)
+    input("prem enter per continuar")
     
+
 def rollback(llista):
     os.system('clear')
+    r = input("Eliminare la data de memoria actual. Continuar [s/n]: ")
+    if r == "s":
+        llista._registres = []
+        llista._categories = []
+        mostra_llista(llista)
 
 
 
@@ -117,7 +136,7 @@ def mostra_menu():
     print("2.- Afegir article.")
     print("3.- Afegir categoria.")
     print("4.- Afegir registre.")
-    print("5.- Ajusta el condensador de fluxe per retrocedir en el temps (ROLLBACK).")
+    print("5.- Ajusta el condensador de fluxe per retrocedir en el temps (PSEUDO_ROLLBACK). Encara no fa res en les datasources")
 
 
 def procesa_opcio(context):
